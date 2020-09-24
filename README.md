@@ -1,1 +1,1 @@
-# IASD_Projects
+# Repository for development of IASD's projects
