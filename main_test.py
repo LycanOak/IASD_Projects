@@ -6,8 +6,7 @@ Created on Mon Nov  2 19:12:43 2020
 """
 
 #import numpy as np 
-from array import array
-import classPMDA
+import classPMDA_v3
 
 
 # define the name of the file to read from
@@ -17,9 +16,12 @@ filename = "READ.txt"
 # open the file for reading
 f = open(filename, 'r')
 
-Prob = classPMDA.PMDAProblem(f)
+Prob = classPMDA_v3.PMDAProblem(f)
 
+    
 Prob.load(f)
+action=Prob.actions(Prob.State)
 
+#print(action)
 # close the pointer to that file
 f.close()
