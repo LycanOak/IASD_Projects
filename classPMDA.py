@@ -87,7 +87,6 @@ class PMDAProblem:
             for pp in range(np.size(self.Patients)):
                 waitingroom[0][pp] = self.Patients[pp]['Current_waiting_time']
 
-
             self.State = State(self.Initial_State, 0, waitingroom, self.Initial_State)
             # The last argument is the time spent by each patient with each doctor
             # At the initial state it is all zero so we can use self.Initial_State to def it.
@@ -98,12 +97,18 @@ class PMDAProblem:
         actionlist = []
         p_in_wr = [] # codes of patients in waiting room
         p_in_wrP = [] # codes of patients in waiting room _PRIORITY
-        doctors=[]
         aux=[]
         priTyWR = 0
-
+        apppp=[]
         tsMD = 0
+        allc = []
+        comb_auxpP = []
+        comb_auxp = []
+        patients=[]
+        
+        
         for pp in range(np.size(self.Patients)):
+            patients.append(self.Patients[pp]['patient_code'])
             # exclude patients whose consult is done
             if s.state[0][pp] != -1:
                 #pick up a column for a patient
@@ -120,91 +125,220 @@ class PMDAProblem:
 
 
         # search for priorities in waiting room
+        for spw in range(0,np.size(p_in_wr)):
 
-        for spw in range(np.size(p_in_wr)):
-            if (s.waiting_time_cntr[0][p_in_wr[spw]-1] + 5) > self.Labels[self.Patients[p_in_wr[spw]-1]['Label']-1]['Max_waiting_time']:
+            if (s.waiting_time_cntr[0][spw] + 5) > self.Labels[self.Patients[spw]['Label']-1]['Max_waiting_time']:
+                
                 priTyWR = 1
                 p_in_wrP.append(p_in_wr[spw])
-                #this patient is not on the common waiting room
-                p_in_wr.pop(spw)
 
+        
+        pmP = len(p_in_wr)-len(p_in_wrP)
+        i = 0
+        while len(p_in_wr) > pmP:
+            ii = p_in_wr.index(p_in_wrP[i])
+            p_in_wr.pop(ii)
+            i = i + 1   
+        
+        print('p_in_wr at beg', p_in_wr)
+        print('p_in_wrP at beg', p_in_wrP)
+        print('$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$')
         if priTyWR == 1:
+            print('there is a priority')
 
             if np.size(p_in_wrP) == np.size(self.Doctors):
+                print('p_in_wrP == Doctors')
                 auxl=permutations(p_in_wrP,len(self.Doctors))
                 #   A=math.factorial(len(p_in_wrP))/math.factorial(len(p_in_wrP)-len(self.Doctors))
 
                 for jj in list(auxl):
                     for j in range(len(self.Doctors)):
-                        aux.append((self.Doctors[j]['Doctor_code'],jj[j]))
+                        aux.append((self.Doctors[j]['Doctor_code'],int(jj[j])))
                     actionlist.append(aux)
                     aux=[]
 
             elif  np.size(p_in_wrP) < np.size(self.Doctors):
+                print('p_in_wrP < Doctors')
                 lp = len(p_in_wr)
                 lpP = len(p_in_wrP)
 
-
-
+                
                 if (lp+lpP)>=len(self.Doctors):
+                    print('p_in_wrP + p_in_wrP >= Doctors')
 
                     auxpP = combinations(p_in_wrP,len(p_in_wrP))
+                    for jj in list(auxpP):
+                        comb_auxpP.append(list(jj))
+                        
                     auxp = combinations(p_in_wr, len(self.Doctors)-len(p_in_wrP))
-                    auxppP = list(auxpP+auxp) #join two tupples and convert to list
+                    for jj in list(auxp):
+                        comb_auxp.append(list(jj))
+                        
+                    allc = np.empty([len(comb_auxp),len(comb_auxpP[0])+len(comb_auxp[0])])
 
-                    auxl = permutations(auxppP,len(self.Doctors))
-                    for jj in list(auxl):
+                    for i in range(0,len(comb_auxp)):
+                        a = comb_auxpP[0]
+
+                        a=a+comb_auxp[i]#a.append(comb_auxp[i])
+                        allc[i] = a
+                        a.pop()
+                        
+
+                    for i in range(len(allc)):
+                        auxxxx=permutations(allc[i])
+                        for jj in list(auxxxx):
+                            apppp.append(jj)
+#                        apppp.append((allc[i][1],allc[i][0]))
+#                        print(apppp)
+
+#                    auxl = permutations(apppp,len(self.Doctors)) #change
+                    for jj in list(apppp):
                         for j in range(len(self.Doctors)):
-                            aux.append((self.Doctors[j]['Doctor_code'],jj[j]))
+                            aux.append((self.Doctors[j]['Doctor_code'],int(jj[j])))
                         actionlist.append(aux)
                         aux=[]
 
                 else:
+                    print('p_in_wrP + p_in_wrP < Doctors')
                     d = len(self.Doctors) - (lp+lpP)
                     auxpP = combinations(p_in_wrP,len(p_in_wrP))
+                    for i in list(auxpP):
+                        comb_auxpP.append(list(i))
+
+                    if len(self.Doctors)-len(p_in_wrP)>len(p_in_wr):
+                        for i in range((len(self.Doctors)-len(p_in_wrP))-len(p_in_wr)):
+                            p_in_wr.append(-1)
                     auxp = combinations(p_in_wr, len(self.Doctors)-len(p_in_wrP))
+                    for i in list(auxp):
+                        comb_auxp.append(list(i))
 
-                    empties = tuple(-np.ones((1,d)))
-                    auxppP = list(auxpP+auxp+empties) #join two tupples and convert to list
+                    allc = np.empty([len(comb_auxp),len(comb_auxpP[0])+len(comb_auxp[0])])
+#                    print(allc)
+                    for i in range(0,len(comb_auxp)):
 
-                    auxl = permutations(auxppP,len(self.Doctors))
+                        a = comb_auxpP[0]
+
+                        a=a+comb_auxp[i]#a.append(comb_auxp[i][:])
+
+                        allc[i] = a
+                        a.pop()
+
+#                    for i in range(len(allc)):
+#                        apppp.append((allc[i][0],allc[i][1]))
+#                        apppp.append((allc[i][1],allc[i][0]))
+#                    print(auxli)
+#                    auxppP=auxiliar+auxli
+#                    print(auxppP)
+                    
+                    auxl = permutations(allc[0],len(self.Doctors))
                     for jj in list(auxl):
+
                         for j in range(len(self.Doctors)):
-                            aux.append((self.Doctors[j]['Doctor_code'],jj[j]))
+                            aux.append((self.Doctors[j]['Doctor_code'],int(jj[j])))
                         actionlist.append(aux)
                         aux=[]
             else:
                 self.has_sol = 0
+                print('INFEASABLE')
                 
         else:
+            print('No priority')
             if len(p_in_wr)>=len(self.Doctors):
+                print('p_in_wr >= Doctors')
+
                 auxl=permutations(p_in_wr,len(self.Doctors))
              #   A=math.factorial(len(p_in_wr))/math.factorial(len(p_in_wr)-len(self.Doctors))
 
                 for jj in list(auxl):
                     for j in range(len(self.Doctors)):
-                        aux.append((self.Doctors[j]['Doctor_code'],jj[j]))
+                        aux.append((self.Doctors[j]['Doctor_code'],int(jj[j])))
                     actionlist.append(aux)
                     aux=[]
             else:
-                #to do --- empty doctor
+                print('p_in_wr < Doctors')
                 d = len(self.Doctors) - len(p_in_wr)
-                empties = -np.ones((1,d))
-                p_in_wr.append(empties)
+                #print(d)
+                empties = -np.ones(d)
+                #print(empties)
+                p_in_wr = np.concatenate([p_in_wr, empties])
+                #print(p_in_wr)
                 auxl=permutations(p_in_wr,len(self.Doctors))
-                
-                
-                auxl = permutations(auxppP,len(self.Doctors))
+                #print(list(auxl))
                 for jj in list(auxl):
                     for j in range(len(self.Doctors)):
-                        aux.append((self.Doctors[j]['Doctor_code'],jj[j]))
+                        aux.append((self.Doctors[j]['Doctor_code'],int(jj[j])))
                     actionlist.append(aux)
                     aux=[]
 
 
-
+#        print(actionlist)
         return actionlist
 
+
+    def result(self, s, a):
+        
+        print('RESULT()')
+        snew = State(s.state, s.Time, s.waiting_time_cntr, s.TimeSpentMD)
+        
+        snew.Time = snew.Time + 5
+        print('enter for i')
+        for i in range(len(self.Patients)):
+            print('i',i)
+            print('snew.waiting_time_cntr\n',snew.waiting_time_cntr)
+            if snew.state[0][i] != -1:
+                if any(snew.state[:,i]):
+                    
+                    # update the time of the last consults
+                    for j in range(len(self.Doctors)):
+                        if snew.state[j][i] == 1:
+                            snew.TimeSpentMD[j][i] += 5                    
+                    
+                    auxcnt = 0
+                    for k in range(len(self.Doctors)):
+                        auxcnt = auxcnt + snew.TimeSpentMD[k][i]*self.Doctors[k]['effi']
+                        
+                    if auxcnt >= self.Labels[self.Patients[i]['Label']-1]['Consult_time']:
+                        # the patient has ended his consult
+                        for kk in range(len(self.Doctors)):
+                            snew.state[kk][i] = -1
+                    else:
+                        #by default set all entries to zero. to be changed afterwards
+                        snew.state[j][i] = 0
+                else:
+                    #patient was not in colncult in the last 5 minutes
+                    snew.waiting_time_cntr[0][i] += 5
+                
+        # apply actions    
+        print('a',a)
+        print('snew.state\n',snew.state)
+        print('enter for actions')
+        for aa in range(len(a)):
+            print('aa',aa)
+            if a[aa][1] == -1:
+                print('hi')
+                continue
+            else:
+                snew.state[a[aa][0]-1][a[aa][1]-1] = 1
+                print('snew.state\n',snew.state)
+                                  
+        return snew
+    
+    
+    def goal_test(self,s):
+        if s.state.all()==-1:
+            return True
+        else:
+            return False
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
 class State:
 
     def __init__(self, snow, time, waitingroom, TimeSpentMD):
