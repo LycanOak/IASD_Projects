@@ -8,84 +8,82 @@ class PMDAProblem:
         "Associates a data file to the information of the problem"
         self.file = f
         self.solution = []  #???
+        
+        self.Doctors = []
+        self.Labels = []
+        self.Patients = []
+        
+        self.Goal_State = []
+        self.Initial_State = []
+        
 
     def load(self, f):
 
-        arr1 = np.array([])
+        arr1 = []
 
         while True:
         # read a single line
           line = f.readline()
-          arr1 = np.append(arr1, line)
+          arr1.append(line)
           if not line:
              break
         # Remove empty lines
         filtered = [x for x in arr1 if len(x.strip()) > 0]
-        # Transform list to array
-        filtered = np.array(filtered)
+
+
 
         # Create array of available doctors, labels and patients
-        doctors = np.array([])
-        labels = np.array([])
-        patients = np.array([])
-
+        doctors = []
+        labels = []
+        patients = []
+        mds = []
+        pls = []
+        ps = []
+        
+        print(filtered)
         for i in range(len(filtered)):
             if 'MD' in filtered[i]:
-                doctors = np.append(doctors,filtered[i])
-
+                doctors.append(filtered[i])
+                mds.append(filtered[i].split(" ")) # returns ['MD', '0001', '1']
+                print(mds)
             elif 'PL' in filtered[i]:
-                labels = np.append(labels,filtered[i])
-                filtered_2 = np.delete(filtered, i)
+                labels.append(filtered[i])
+                pls.append(filtered[i].split(" ")) # returns ['PL', '01', '10', '15']
+                print(pls)
 
             elif 'P' in filtered[i]:
-                patients = np.append(patients,filtered[i])
-
-            arr_doctors = np.zeros([len(doctors),2])
-            for k in range(len(doctors)):
-                arr = [float(i.strip()) for i in doctors[k][3:-1].split(" ")]
-                arr = np.array(arr)
-                arr_doctors[k,:]= arr
-
-
-            arr_labels = np.zeros([len(labels),3])
-            for k in range(len(labels)):
-                arr = [float(i.strip()) for i in labels[k][3:-1].split(" ")]
-                arr = np.array(arr)
-                arr_labels[k,:]= arr
-
-            arr_patients = np.zeros([len(patients),3])
-            for k in range(len(patients)):
-                arr = [float(i.strip()) for i in patients[k][2:-1].split(" ")]
-                arr = np.array(arr)
-                arr_patients[k,:]= arr
-#
+                patients.append(filtered[i])
+                ps.append(filtered[i].split(" ")) #returns ['P', '001', '5', '01']
+                print(ps)
+                                
             doctors_arr = []
-            for i in range(len(doctors)):
-                dictionary_doctor = {"Doctor_code": int(arr_doctors[i][0]), "effi": arr_doctors[i][1]}
+            for i in range(len(mds)):
+                dictionary_doctor = {"Doctor_code": int(mds[i][1]), "effi": float(mds[i][2])}
                 doctors_arr.append(dictionary_doctor.copy())
             self.Doctors = doctors_arr
 
             labels_arr = []
             for i in range(len(labels)):
-                dictionary_labels = {"Label_code": int(arr_labels[i][0]), "Max_waiting_time": int(arr_labels[i][1]), "Consult_time": int(arr_labels[i][2])}
+                dictionary_labels = {"Label_code": int(pls[i][1]), "Max_waiting_time": int(pls[i][2]), "Consult_time": int(pls[i][3])}
                 labels_arr.append(dictionary_labels.copy())
             self.Labels = labels_arr
 
             patients_arr = []
             for i in range(len(patients)):
-                dictionary_patients = {"patient_code": int(arr_patients[i][0]), "Current_waiting_time": int(arr_patients[i][1]), "Label": int(arr_patients[i][2])}
-                patients_arr.append(dictionary_patients.copy())
+                dictionary_patients = {"patient_code": int(ps[i][1]), "Current_waiting_time": int(ps[i][2]), "Label": int(ps[i][3])}
+                patients_arr.append(dictionary_patients.copy())           
             self.Patients = patients_arr
 
-            #define goal state: All consults have ended. Represented by a matrix of -1
-            self.Goal_State = - np.ones((np.size(self.Doctors), np.size(self.Patients)));
+            #define goal state: All consults have ended. Represented by a matrix of -1    
+            for d in range(len(self.Doctors)):
+                for p in range(len(self.Patients)):
+                    self.Goal_State.append(-1)
+                    self.Initial_State.append(0)
+                                
+            waitingroom = []
+            for pp in range(len(self.Patients)):
+                waitingroom.append(self.Patients[pp]['Current_waiting_time'])
 
-            #define initial state: No consult has started yet. Represented by a matrix of 0
-            self.Initial_State = np.zeros((np.size(self.Doctors), np.size(self.Patients)));
-
-            waitingroom = np.zeros((1, np.size(self.Patients)))
-            for pp in range(np.size(self.Patients)):
-                waitingroom[0][pp] = self.Patients[pp]['Current_waiting_time']
 
             self.State = State(self.Initial_State, 0, waitingroom, self.Initial_State)
             # The last argument is the time spent by each patient with each doctor
@@ -104,19 +102,22 @@ class PMDAProblem:
         allc = []
         comb_auxpP = []
         comb_auxp = []
-        patients=[]
+        patients = []
         
         
-        for pp in range(np.size(self.Patients)):
+        for pp in range(len(self.Patients)):
             patients.append(self.Patients[pp]['patient_code'])
             # exclude patients whose consult is done
-            if s.state[0][pp] != -1:
+            if s.state[pp + 0*len(self.Patients)] != -1:
                 #pick up a column for a patient
-                ppp = s.state[:,pp]
+                ppp = []
+                for d in range(len(self.Doctors)):
+                    ppp.append(s.state[pp+d*len(self.Doctors)])
+                
                 if any(ppp):
 
-                    for i in range(np.size(s.TimeSpentMD[:,pp])):
-                        tsMD = tsMD + self.Doctors[i]['effi']*s.TimeSpentMD[i,pp]
+                    for i in range(len(self.Doctors)):
+                        tsMD = tsMD + self.Doctors[i]['effi']*s.TimeSpentMD[pp+i*len(self.Patients)]
 
                     if not (tsMD == self.Labels[self.Patients[pp]['Label']-1]['Consult_time']):
                         p_in_wr.append(self.Patients[pp]['patient_code'])
@@ -125,9 +126,9 @@ class PMDAProblem:
 
 
         # search for priorities in waiting room
-        for spw in range(0,np.size(p_in_wr)):
+        for spw in range(0,len(p_in_wr)):
 
-            if (s.waiting_time_cntr[0][spw] + 5) > self.Labels[self.Patients[spw]['Label']-1]['Max_waiting_time']:
+            if (s.waiting_time_cntr[spw] + 5) > self.Labels[self.Patients[spw]['Label']-1]['Max_waiting_time']:
                 
                 priTyWR = 1
                 p_in_wrP.append(p_in_wr[spw])
@@ -146,10 +147,9 @@ class PMDAProblem:
         if priTyWR == 1:
             print('there is a priority')
 
-            if np.size(p_in_wrP) == np.size(self.Doctors):
+            if len(p_in_wrP) == len(self.Doctors):
                 print('p_in_wrP == Doctors')
                 auxl=permutations(p_in_wrP,len(self.Doctors))
-                #   A=math.factorial(len(p_in_wrP))/math.factorial(len(p_in_wrP)-len(self.Doctors))
 
                 for jj in list(auxl):
                     for j in range(len(self.Doctors)):
@@ -157,7 +157,7 @@ class PMDAProblem:
                     actionlist.append(aux)
                     aux=[]
 
-            elif  np.size(p_in_wrP) < np.size(self.Doctors):
+            elif len(p_in_wrP) < len(self.Doctors):
                 print('p_in_wrP < Doctors')
                 lp = len(p_in_wr)
                 lpP = len(p_in_wrP)
@@ -256,14 +256,13 @@ class PMDAProblem:
                     aux=[]
             else:
                 print('p_in_wr < Doctors')
+                
                 d = len(self.Doctors) - len(p_in_wr)
-                #print(d)
-                empties = -np.ones(d)
-                #print(empties)
-                p_in_wr = np.concatenate([p_in_wr, empties])
-                #print(p_in_wr)
+                for dd in range(d):
+                    p_in_wr.append(-1)
+                
                 auxl=permutations(p_in_wr,len(self.Doctors))
-                #print(list(auxl))
+                
                 for jj in list(auxl):
                     for j in range(len(self.Doctors)):
                         aux.append((self.Doctors[j]['Doctor_code'],int(jj[j])))
@@ -285,28 +284,32 @@ class PMDAProblem:
         for i in range(len(self.Patients)):
             print('i',i)
             print('snew.waiting_time_cntr\n',snew.waiting_time_cntr)
-            if snew.state[0][i] != -1:
-                if any(snew.state[:,i]):
+            if snew.state[i+ 0*len(self.Doctors)] != -1:
+                sss = []
+                for t in range(len(self.Doctors)):
+                    sss.append(s.state[i+t*len(self.Doctors)])                      
+
+                if any(sss):
                     
                     # update the time of the last consults
                     for j in range(len(self.Doctors)):
-                        if snew.state[j][i] == 1:
-                            snew.TimeSpentMD[j][i] += 5                    
+                        if snew.state[i+j*len(self.Patients)] == 1:
+                            snew.TimeSpentMD[i+j*len(self.Patients)] += 5                    
                     
                     auxcnt = 0
                     for k in range(len(self.Doctors)):
-                        auxcnt = auxcnt + snew.TimeSpentMD[k][i]*self.Doctors[k]['effi']
+                        auxcnt = auxcnt + snew.TimeSpentMD[i+k*len(self.Patients)]*self.Doctors[k]['effi']
                         
                     if auxcnt >= self.Labels[self.Patients[i]['Label']-1]['Consult_time']:
                         # the patient has ended his consult
                         for kk in range(len(self.Doctors)):
-                            snew.state[kk][i] = -1
+                            snew.state[i+kk*len(self.Patients)] = -1
                     else:
                         #by default set all entries to zero. to be changed afterwards
-                        snew.state[j][i] = 0
+                        snew.state[i+j*len(self.Patients)] = 0
                 else:
                     #patient was not in colncult in the last 5 minutes
-                    snew.waiting_time_cntr[0][i] += 5
+                    snew.waiting_time_cntr[i] += 5
                 
         # apply actions    
         print('a',a)
@@ -318,7 +321,7 @@ class PMDAProblem:
                 print('hi')
                 continue
             else:
-                snew.state[a[aa][0]-1][a[aa][1]-1] = 1
+                snew.state[(a[aa][1]-1)+(a[aa][0]-1)*len(self.Patients)] = 1
                 print('snew.state\n',snew.state)
                                   
         return snew
@@ -330,15 +333,7 @@ class PMDAProblem:
         else:
             return False
         
-        
-        
-        
-        
-        
-        
-        
-        
-        
+
 class State:
 
     def __init__(self, snow, time, waitingroom, TimeSpentMD):
