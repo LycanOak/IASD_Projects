@@ -1,5 +1,3 @@
-import numpy as np
-import math as math
 from itertools import permutations
 from itertools import combinations
 class PMDAProblem:
@@ -173,14 +171,15 @@ class PMDAProblem:
                     auxp = combinations(p_in_wr, len(self.Doctors)-len(p_in_wrP))
                     for jj in list(auxp):
                         comb_auxp.append(list(jj))
-                        
-                    allc = np.empty([len(comb_auxp),len(comb_auxpP[0])+len(comb_auxp[0])])
+                    
+                    allc = []
+                    #allc = np.empty([len(comb_auxp),len(comb_auxpP[0])+len(comb_auxp[0])])
 
                     for i in range(0,len(comb_auxp)):
                         a = comb_auxpP[0]
 
                         a=a+comb_auxp[i]#a.append(comb_auxp[i])
-                        allc[i] = a
+                        allc.append(a)
                         a.pop()
                         
 
